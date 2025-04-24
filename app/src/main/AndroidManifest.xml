@@ -17,6 +17,7 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.GpsLocation"
+        android:networkSecurityConfig="@xml/network_security_config"
         tools:ignore="ForegroundServicePermission"
         tools:targetApi="tiramisu">
 
@@ -33,8 +34,6 @@
             android:name=".service.GpsLocationService"
             android:foregroundServiceType="location"
             android:exported="false"/>
-
-
 
     </application>
 
