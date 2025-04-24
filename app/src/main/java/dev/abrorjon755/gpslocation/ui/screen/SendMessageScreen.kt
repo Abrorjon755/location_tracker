@@ -1,33 +1,120 @@
 package dev.abrorjon755.gpslocation.ui.screen
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
+import okhttp3.*
+import java.util.concurrent.TimeUnit
 
 @Composable
 fun SendMessageScreen() {
+    val scope = rememberCoroutineScope()
+    var message by remember { mutableStateOf<String?>(null) }
+    var isRequesting by remember { mutableStateOf(false) }
+    var webSocket by remember { mutableStateOf<WebSocket?>(null) }
+
+    // Setup WebSocket connection
+    LaunchedEffect(Unit) {
+        val client = OkHttpClient.Builder()
+            .pingInterval(30, TimeUnit.SECONDS)
+            .build()
+
+        val request = Request.Builder().url("ws://35.184.28.154:8080/ws").build()
+
+        webSocket = client.newWebSocket(request, object : WebSocketListener() {
+            override fun onMessage(webSocket: WebSocket, text: String) {
+                message = "Received: $text"
+            }
+
+            override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
+                message = "Connection error: ${t.message}"
+            }
+        })
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
+            .padding(16.dp)
+            .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Text(
-            text = "Location Tracking Service",
-            style = MaterialTheme.typography.headlineMedium
+            text = "WebSocket Client",
+            style = MaterialTheme.typography.headlineMedium,
+            textAlign = TextAlign.Center
         )
-        Spacer(modifier = Modifier.height(16.dp))
+
+        Button(
+            onClick = {
+                isRequesting = true
+                scope.launch {
+                    try {
+                        val requestMessage = """
+                            {
+                                "type": "request"
+                            }
+                        """.trimIndent()
+
+                        webSocket?.send(requestMessage)
+                        message = "Request sent..."
+                    } catch (e: Exception) {
+                        message = "Error: ${e.message}"
+                    } finally {
+                        isRequesting = false
+                    }
+                }
+            },
+            enabled = !isRequesting,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            if (isRequesting) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(24.dp),
+                    color = MaterialTheme.colorScheme.onPrimary
+                )
+            } else {
+                Text("Send Request")
+            }
+        }
+
+        if (message != null) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                )
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "Response",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = message!!,
+                        style = MaterialTheme.typography.bodyLarge,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+        }
+
         Text(
-            text = "Service is running in background",
-            style = MaterialTheme.typography.bodyLarge
-        )
-        Text(
-            text = "Listening for WebSocket requests",
-            style = MaterialTheme.typography.bodyLarge
+            text = "WebSocket Status: ${if (webSocket != null) "Connected" else "Disconnected"}",
+            style = MaterialTheme.typography.bodyLarge,
+            color = if (webSocket != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
         )
     }
 }
