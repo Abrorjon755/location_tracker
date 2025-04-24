@@ -60,7 +60,7 @@ fun SendMessageScreen() {
                     try {
                         val requestMessage = """
                             {
-                                "type": "request"
+                                "type": "location_request"
                             }
                         """.trimIndent()
 
