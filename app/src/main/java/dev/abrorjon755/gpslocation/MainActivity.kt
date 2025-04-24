@@ -62,7 +62,7 @@ class MainActivity : ComponentActivity() {
     @SuppressLint("BatteryLife")
     fun askUserToDisableBatteryOptimization(context: Context): Boolean {
         val powerManager =
-            context.getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
+            context.getSystemService(POWER_SERVICE) as android.os.PowerManager
         if (!powerManager.isIgnoringBatteryOptimizations(context.packageName)) {
             // Open battery optimization settings
             val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS)
