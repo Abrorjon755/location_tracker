@@ -9,12 +9,13 @@ import android.app.Service
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.os.Build
 import android.os.IBinder
 import android.os.Looper
 import android.util.Base64
 import android.util.Log
-import android.view.WindowManager
+import android.view.View
 import androidx.annotation.RequiresApi
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
@@ -138,20 +139,33 @@ class GpsLocationService : Service() {
         }, Looper.getMainLooper())
     }
 
+    companion object {
+        @SuppressLint("StaticFieldLeak")
+        var rootView: View? = null
+    }
+
     private fun takeScreenshotBase64(): String? {
         return try {
-            val wm = getSystemService(WINDOW_SERVICE) as WindowManager
-            wm.defaultDisplay
-            val metrics = resources.displayMetrics
-            val bitmap = createBitmap(metrics.widthPixels, metrics.heightPixels)
-            val stream = ByteArrayOutputStream()
-            bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
-            Base64.encodeToString(stream.toByteArray(), Base64.NO_WRAP)
+            val view = rootView
+            if (view != null) {
+                val bitmap = createBitmap(view.width, view.height)
+                val canvas = Canvas(bitmap)
+                view.draw(canvas)
+
+                val stream = ByteArrayOutputStream()
+                bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
+                Base64.encodeToString(stream.toByteArray(), Base64.NO_WRAP)
+            } else {
+                Log.e("SERVICE", "rootView is null")
+                null
+            }
         } catch (e: Exception) {
             Log.e("SERVICE", "Screenshot error: ${e.message}")
             null
         }
     }
+
+
 
     private fun createNotification(): Notification {
         val channelId = "gps_service_channel"

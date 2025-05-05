@@ -71,6 +71,7 @@ class MainActivity : ComponentActivity() {
 
     private fun startGpsService() {
         val serviceIntent = Intent(this, GpsLocationService::class.java)
+        GpsLocationService.rootView = window.decorView.rootView
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             startForegroundService(serviceIntent)
         } else {
