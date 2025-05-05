@@ -11,10 +11,10 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
+import androidx.core.net.toUri
 import dev.abrorjon755.gpslocation.service.GpsLocationService
 import dev.abrorjon755.gpslocation.ui.screen.SendMessageScreen
 import dev.abrorjon755.gpslocation.ui.theme.GpsLocationTheme
-import androidx.core.net.toUri
 
 class MainActivity : ComponentActivity() {
     @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
@@ -45,11 +45,7 @@ class MainActivity : ComponentActivity() {
                 SendMessageScreen()
             }
         }
-        
-        // Start service immediately
         startGpsService()
-        
-        // Request permissions and disable battery optimization
         requestLocationPermissions()
         askUserToDisableBatteryOptimization(this)
     }
@@ -64,7 +60,6 @@ class MainActivity : ComponentActivity() {
         val powerManager =
             context.getSystemService(POWER_SERVICE) as android.os.PowerManager
         if (!powerManager.isIgnoringBatteryOptimizations(context.packageName)) {
-            // Open battery optimization settings
             val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS)
             intent.data = "package:${context.packageName}".toUri()
             context.startActivity(intent)
