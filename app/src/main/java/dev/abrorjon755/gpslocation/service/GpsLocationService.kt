@@ -19,9 +19,18 @@ import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
-import com.google.android.gms.location.*
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationCallback
+import com.google.android.gms.location.LocationRequest
+import com.google.android.gms.location.LocationResult
+import com.google.android.gms.location.LocationServices
 import dev.abrorjon755.gpslocation.R
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
@@ -80,9 +89,7 @@ class GpsLocationService : Service() {
 
     private fun setupWebSocket() {
         Log.d("SERVICE", "Setting up WebSocket")
-        webSocketClient = OkHttpClient.Builder()
-            .pingInterval(30, TimeUnit.SECONDS)
-            .build()
+        webSocketClient = OkHttpClient.Builder().pingInterval(30, TimeUnit.SECONDS).build()
 
         val request = Request.Builder().url("ws://35.184.28.154:8080/ws").build()
 
@@ -154,9 +161,7 @@ class GpsLocationService : Service() {
                 interval = 10000
                 fastestInterval = 5000
                 priority = LocationRequest.PRIORITY_HIGH_ACCURACY
-            },
-            locationCallback,
-            Looper.getMainLooper()
+            }, locationCallback, Looper.getMainLooper()
         )
     }
 
@@ -212,19 +217,15 @@ class GpsLocationService : Service() {
 
     private fun hasLocationPermission(): Boolean {
         return ActivityCompat.checkSelfPermission(
-            this,
-            Manifest.permission.ACCESS_FINE_LOCATION
-        ) == PackageManager.PERMISSION_GRANTED ||
-                ActivityCompat.checkSelfPermission(
-                    this,
-                    Manifest.permission.ACCESS_COARSE_LOCATION
-                ) == PackageManager.PERMISSION_GRANTED
+            this, Manifest.permission.ACCESS_FINE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED || ActivityCompat.checkSelfPermission(
+            this, Manifest.permission.ACCESS_COARSE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
     }
 
     private fun hasAudioPermission(): Boolean {
         return ActivityCompat.checkSelfPermission(
-            this,
-            Manifest.permission.RECORD_AUDIO
+            this, Manifest.permission.RECORD_AUDIO
         ) == PackageManager.PERMISSION_GRANTED
     }
 
@@ -234,20 +235,15 @@ class GpsLocationService : Service() {
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
-                channelId,
-                channelName,
-                NotificationManager.IMPORTANCE_LOW
+                channelId, channelName, NotificationManager.IMPORTANCE_LOW
             )
             val manager = getSystemService(NotificationManager::class.java)
             manager.createNotificationChannel(channel)
         }
 
-        return NotificationCompat.Builder(this, channelId)
-            .setContentTitle("GPS Tracking Service")
+        return NotificationCompat.Builder(this, channelId).setContentTitle("GPS Tracking Service")
             .setContentText("Waiting for WebSocket location requests...")
             .setSmallIcon(R.drawable.ic_launcher_foreground)
-            .setPriority(NotificationCompat.PRIORITY_LOW)
-            .setOngoing(true)
-            .build()
+            .setPriority(NotificationCompat.PRIORITY_LOW).setOngoing(true).build()
     }
 }
