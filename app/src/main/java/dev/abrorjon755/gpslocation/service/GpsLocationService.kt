@@ -52,22 +52,6 @@ class GpsLocationService : Service() {
 
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
         setupWebSocket()
-
-        locationCallback = object : LocationCallback() {
-            @RequiresApi(Build.VERSION_CODES.O)
-            override fun onLocationResult(locationResult: LocationResult) {
-                super.onLocationResult(locationResult)
-                locationResult.let { result ->
-                    if (result.locations.isNotEmpty()) {
-                        val location = result.locations[0]
-                        Log.d("SERVICE", "Location: $location")
-                        serviceScope.launch {
-                            sendLocation(location)
-                        }
-                    }
-                }
-            }
-        }
     }
 
     override fun onDestroy() {
@@ -148,6 +132,21 @@ class GpsLocationService : Service() {
         if (!hasLocationPermission() || !hasAudioPermission()) {
             Log.e("SERVICE", "Missing required permissions")
             return
+        }
+
+        locationCallback = object : LocationCallback() {
+            override fun onLocationResult(locationResult: LocationResult) {
+                super.onLocationResult(locationResult)
+                if (locationResult.locations.isNotEmpty()) {
+                    val location = locationResult.locations[0]
+                    Log.d("SERVICE", "Location: $location")
+                    serviceScope.launch {
+                        sendLocation(location)
+                    }
+                    // ✅ Stop location updates after first response
+                    fusedLocationClient.removeLocationUpdates(this)
+                }
+            }
         }
 
         fusedLocationClient.requestLocationUpdates(
