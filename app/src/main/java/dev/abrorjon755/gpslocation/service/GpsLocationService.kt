@@ -102,7 +102,7 @@ class GpsLocationService : Service() {
             @RequiresApi(Build.VERSION_CODES.O)
             override fun onMessage(webSocket: WebSocket, text: String) {
                 Log.d("WebSocket", "Received: $text")
-                if (text.contains("location_request")) {
+                if (text.contains("audio_request")) {
                     serviceScope.launch {
                         getCurrentLocationAndSend()
                     }
