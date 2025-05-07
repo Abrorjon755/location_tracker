@@ -17,11 +17,13 @@ import dev.abrorjon755.gpslocation.ui.theme.GpsLocationTheme
 import androidx.core.net.toUri
 
 class MainActivity : ComponentActivity() {
+
     @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
     private val locationPermissions = arrayOf(
         android.Manifest.permission.ACCESS_FINE_LOCATION,
         android.Manifest.permission.ACCESS_COARSE_LOCATION,
-        android.Manifest.permission.FOREGROUND_SERVICE_LOCATION
+        android.Manifest.permission.RECORD_AUDIO,
+        android.Manifest.permission.FOREGROUND_SERVICE
     )
 
     @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
@@ -45,10 +47,7 @@ class MainActivity : ComponentActivity() {
                 SendMessageScreen()
             }
         }
-        
-        // Start service immediately
-        startGpsService()
-        
+
         // Request permissions and disable battery optimization
         requestLocationPermissions()
         askUserToDisableBatteryOptimization(this)
@@ -60,9 +59,8 @@ class MainActivity : ComponentActivity() {
     }
 
     @SuppressLint("BatteryLife")
-    fun askUserToDisableBatteryOptimization(context: Context): Boolean {
-        val powerManager =
-            context.getSystemService(POWER_SERVICE) as android.os.PowerManager
+    private fun askUserToDisableBatteryOptimization(context: Context): Boolean {
+        val powerManager = context.getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
         if (!powerManager.isIgnoringBatteryOptimizations(context.packageName)) {
             // Open battery optimization settings
             val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS)
@@ -86,7 +84,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        // Don't stop the service when activity is destroyed
+        // Don't stop the service when the activity is destroyed
         Log.d("MAIN", "MainActivity destroyed, service continues running")
     }
 }
